@@ -1,0 +1,34 @@
+{
+  "name": "dao-s3",
+  "version": "0.1.0",
+  "description": "AWS S3 adapter for daoi",
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha -R spec test/api.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clonq/dao-s3.git"
+  },
+  "keywords": [
+    "dao",
+    "S3",
+    "AWS"
+  ],
+  "author": "Ovi Comes",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/clonq/dao-s3/issues"
+  },
+  "homepage": "https://github.com/clonq/dao-s3",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "daoi": "file:../dao",
+    "mocha": "^2.4.5",
+    "should": "^8.2.2"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.2.42",
+    "underscore": "^1.8.3",
+    "uuid": "^2.0.1"
+  }
+}
