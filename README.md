@@ -7,6 +7,8 @@ AWS S3 adapter for [daoi](https://www.npmjs.com/package/daoi)
 var dao = require('daoi');
 var s3DaoAdapter = require('s3DaoAdapter');
 
+s3DaoAdapter.config({ storage: 'mybucket/users.json' })
+
 dao
 .use(s3DaoAdapter)
 .on('create', function(model){
@@ -15,7 +17,6 @@ dao
 .on('error', function(err){
 	// error handler
 })
-.config({ storage: 'mybucket/users.json' })
 .create({ name: 'joe', email: 'joe@test.com' });
 
 ```

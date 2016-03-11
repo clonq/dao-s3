@@ -7,10 +7,14 @@ var TEST_MODEL = {
     name: 'joe',
     age: 23
 };
-var TEST_ID;
+
 var S3_STORAGE_FILENAME = 'dao-s3-test-bucket/users.json';
+var TEST_ID;
 
 describe("DAO-S3 API tests", function() {
+    before(function(){
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
+    });
     after(function(done){
         require('../lib/aws/s3').del(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], function(err){
             done(err);
@@ -30,7 +34,6 @@ describe("DAO-S3 API tests", function() {
         .on('error', function(err){
             done(err);
         })
-        .config({storage:S3_STORAGE_FILENAME})
         .create(TEST_MODEL);
     });
     it('should read a model', function(done){
@@ -48,7 +51,6 @@ describe("DAO-S3 API tests", function() {
         .on('error', function(err){
             done(err);
         })
-        .config({storage:S3_STORAGE_FILENAME})
         .read(TEST_MODEL);
     });
     it('should update a model', function(done){
@@ -67,7 +69,6 @@ describe("DAO-S3 API tests", function() {
         .on('error', function(err){
             done(err);
         })
-        .config({storage:S3_STORAGE_FILENAME})
         .update(TEST_MODEL);
     });
     it('should delete a model', function(done){
@@ -87,7 +88,6 @@ describe("DAO-S3 API tests", function() {
         .on('error', function(err){
             done(err);
         })
-        .config({storage:S3_STORAGE_FILENAME})
         .delete(TEST_MODEL);
     });
 });
