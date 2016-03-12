@@ -36,11 +36,21 @@ describe.only("DAO-S3 direct tests", function() {
         });
     });
     it('should find all available models', function(done){
-        var res = s3DaoAdapter.find({$type: 'user'}, function(err, users){
+        s3DaoAdapter.find({$type: 'user'}, function(err, users){
             should.exist(users);
             users.should.be.an.array;
             users[0].should.be.an.object;
             users[0].should.have.property('$id');
+            done(err);
+        });
+    });
+    it('should find one model', function(done){
+        s3DaoAdapter.findOne({$type: 'user', name: 'joe'}, function(err, user){
+            should.exist(user);
+            user.should.be.an.object;
+            user.should.have.property('$id');
+            user.should.have.property('name');
+            user.name.should.equal(TEST_MODEL.name);
             done(err);
         });
     });

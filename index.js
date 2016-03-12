@@ -154,13 +154,33 @@ function find(model, cb) {
     }
 }
 
+function findOne(model, cb) {
+    if(isDirty) {
+        fetch(function(err, data){
+            if(err) return cb(err);
+            _find.call(model, cb);
+        });
+    } else {
+        _find.call(model, cb);
+    }
+    function _find() {
+        if(this) {
+            var bucket = this.$type || 'unknown';
+            delete model.$type;
+            var ret = _.findWhere(buckets[bucket], model);
+            return cb(null, ret);
+        }
+    }
+}
+
 module.exports = {
     config: config,
     create: create,
     read: read,
     update: update,
     delete: remove,
-    find: find
+    find: find,
+    findOne: findOne
 }
 
 function fetch(cb){
