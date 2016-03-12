@@ -173,6 +173,25 @@ function findOne(model, cb) {
     }
 }
 
+function count(model, cb) {
+    if(isDirty) {
+        fetch(function(err, data){
+            if(err) return cb(err);
+            _count.call(model, cb);
+        });
+    } else {
+        _count.call(model, cb);
+    }
+    function _count() {
+        if(this) {
+            var bucket = this.$type || 'unknown';
+            delete model.$type;
+            var ret = _.size(_.where(buckets[bucket], model));
+            return cb(null, ret);
+        }
+    }
+}
+
 module.exports = {
     config: config,
     create: create,
@@ -180,7 +199,8 @@ module.exports = {
     update: update,
     delete: remove,
     find: find,
-    findOne: findOne
+    findOne: findOne,
+    count: count
 }
 
 function fetch(cb){
