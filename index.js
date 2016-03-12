@@ -192,6 +192,37 @@ function count(model, cb) {
     }
 }
 
+function clear(model, cb) {
+    if(isDirty) {
+        fetch(function(err, data){
+            if(err) return cb(err);
+            try {
+                _clear.call(model);
+                store(function(err){
+                    cb(err);
+                });
+            } catch(err) {
+                cb(err);
+            }
+        });
+    } else {
+        try {
+            _clear.call(model);
+            store(function(err){
+                cb(err);
+            });
+        } catch(err) {
+            cb(err);
+        }
+    }
+    function _clear() {
+        if(this) {
+            var bucket = this.$type || 'unknown';
+            buckets[bucket] = [];
+        }
+    }
+}
+
 module.exports = {
     config: config,
     create: create,
@@ -200,7 +231,8 @@ module.exports = {
     delete: remove,
     find: find,
     findOne: findOne,
-    count: count
+    count: count,
+    clear: clear
 }
 
 function fetch(cb){

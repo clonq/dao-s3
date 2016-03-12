@@ -54,10 +54,18 @@ describe.only("DAO-S3 direct tests", function() {
             done(err);
         });
     });
-    it.only('should count existing models', function(done){
+    it('should count existing models', function(done){
         s3DaoAdapter.count({$type: 'user', age: 23}, function(err, count){
             count.should.equal(1);
             done(err);
+        });
+    });
+    it('should clear the bucket', function(done){
+        s3DaoAdapter.clear({$type: 'user'}, function(err){
+            s3DaoAdapter.count({$type: 'user'}, function(err, count){
+                count.should.equal(0);
+                done(err);
+            });
         });
     });
 });
