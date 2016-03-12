@@ -11,7 +11,83 @@ var TEST_MODEL = {
 var S3_STORAGE_FILENAME = 'dao-s3-test-bucket/users.json';
 var TEST_ID;
 
-describe("DAO-S3 API tests", function() {
+describe.only("DAO-S3 direct tests", function() {
+    before(function(done){
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
+        // todo: create record without using the adapter
+        dao
+        .use(s3DaoAdapter)
+        .on('create', function(model){
+            should.exist(model);
+            model.should.have.property('$id');
+            model.should.have.property('name');
+            model.name.should.equal(TEST_MODEL.name);
+            TEST_ID = model.$id;
+            done();
+        })
+        .on('error', function(err){
+            done(err);
+        })
+        .create(TEST_MODEL);
+    });
+    after(function(done){
+        require('../lib/aws/s3').del(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], function(err){
+            done(err);
+        });
+    });
+    it('should find all available models', function(done){
+        var res = s3DaoAdapter.find({$type: 'user'}, function(err, users){
+            should.exist(users);
+            users.should.be.an.array;
+            users[0].should.be.an.object;
+            users[0].should.have.property('$id');
+            done(err);
+        });
+    });
+});
+
+describe("DAO-S3 API v1 compliance tests", function() {
+    before(function(){
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
+        // todo: create record without using the adapter
+        dao
+        .use(s3DaoAdapter)
+        .on('create', function(model){
+            should.exist(model);
+            model.should.have.property('$id');
+            model.should.have.property('name');
+            model.name.should.equal(TEST_MODEL.name);
+            TEST_ID = model.$id;
+            done();
+        })
+        .on('error', function(err){
+            done(err);
+        })
+        .create(TEST_MODEL);
+    });
+    after(function(done){
+        require('../lib/aws/s3').del(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], function(err){
+            done(err);
+        });
+    });
+    it('should find all models without registering a model', function(done){
+        dao
+        .use(s3DaoAdapter)
+        .on('find', function(model){
+            should.exist(model);
+            model.should.have.property('$id');
+            model.should.have.property('name');
+            model.name.should.equal(TEST_MODEL.name);
+            done();
+        })
+        .on('error', function(err){
+            done(err);
+        })
+        .find({$type: 'user'});
+    });
+});
+
+describe("DAO-S3 API v0 compliance tests", function() {
     before(function(){
         s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
     });

@@ -12,7 +12,8 @@
   "keywords": [
     "dao",
     "S3",
-    "AWS"
+    "AWS",
+    "data access object"
   ],
   "author": "Ovi Comes",
   "license": "MIT",
