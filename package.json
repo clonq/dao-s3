@@ -1,6 +1,6 @@
 {
   "name": "dao-s3",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "AWS S3 adapter for daoi",
   "scripts": {
     "test": "node_modules/mocha/bin/mocha -R spec test/api.js"
@@ -29,7 +29,7 @@
   "dependencies": {
     "aws-sdk": "^2.2.42",
     "daoi": "^1.0.0",
-    "underscore": "^1.8.3",
-    "uuid": "^2.0.1"
+    "ulid": "^0.1.0",
+    "underscore": "^1.8.3"
   }
 }

@@ -85,6 +85,7 @@ describe("DAO-S3 API v0 compliance tests", function() {
         .on('create', function(model){
             should.exist(model);
             model.should.have.property('$id');
+            /[0-9A-Z]{26}/.test(model.$id).should.be.ok;
             model.should.have.property('name');
             model.name.should.equal(TEST_MODEL.name);
             TEST_ID = model.$id;

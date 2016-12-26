@@ -1,5 +1,5 @@
 var s3 = require('./lib/aws/s3');
-var uuid = require('uuid');
+var ulid = require('ulid');
 var _ = require('underscore');
 
 var storage;
@@ -27,7 +27,7 @@ function create(model, cb){
         });
     }
     function put() {
-        this.$id = uuid.v4();
+        this.$id = ulid();
         this.$created = Date.now();
         var bucket = model.$type || 'unknown';
         if(!buckets[bucket]) buckets[bucket] = [];
