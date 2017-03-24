@@ -237,8 +237,9 @@ module.exports = {
 
 function fetch(cb){
     if(storage) {
-        var s3bucket = storage.split('/')[0];
-        var s3key = storage.split('/')[1];
+        var path = storage.split('/');
+        var s3key = path.splice(-1, 1)[0];
+        var s3bucket = path.join('/');
         s3.get(s3bucket, s3key, function(err, data){
             if(err) data = {};
             buckets = data;
@@ -253,8 +254,9 @@ function fetch(cb){
 function store(cb){
     isDirty = true;
     if(storage) {
-        var s3bucket = storage.split('/')[0];
-        var s3key = storage.split('/')[1];
+        var path = storage.split('/');
+        var s3key = path.splice(-1, 1)[0];
+        var s3bucket = path.join('/');
         s3.put(s3bucket, s3key, buckets, function(err, data){
             if(err) return cb(err);
             else {
