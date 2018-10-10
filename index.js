@@ -4,6 +4,7 @@ var _ = require('underscore');
 
 var storage;
 var buckets;
+var bucket;
 var isDirty = true;
 
 function config(opts) {
@@ -12,6 +13,7 @@ function config(opts) {
 }
 
 function create(model, cb){
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -37,6 +39,7 @@ function create(model, cb){
 }
 
 function read(model, cb) {
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -57,6 +60,7 @@ function read(model, cb) {
 }
 
 function update(model, cb){
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -94,6 +98,7 @@ function update(model, cb){
 }
 
 function remove(model, cb) {
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -136,6 +141,7 @@ function remove(model, cb) {
 }
 
 function find(model, cb) {
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -155,6 +161,7 @@ function find(model, cb) {
 }
 
 function findOne(model, cb) {
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -174,6 +181,7 @@ function findOne(model, cb) {
 }
 
 function count(model, cb) {
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -193,6 +201,7 @@ function count(model, cb) {
 }
 
 function clear(model, cb) {
+    bucket = model.$type || 'unknown';
     if(isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
@@ -257,7 +266,8 @@ function store(cb){
         var path = storage.split('/');
         var s3key = path.splice(-1, 1)[0];
         var s3bucket = path.join('/');
-        s3.put(s3bucket, s3key, buckets, function(err, data){
+        if(!buckets[bucket]) buckets[bucket] = [];
+        s3.put(s3bucket, s3key, buckets[bucket], function(err, data){
             if(err) return cb(err);
             else {
                 isDirty = false;
