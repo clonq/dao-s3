@@ -1,9 +1,9 @@
 var s3 = require('./lib/aws/s3');
-var ulid = require('ulid');
+var uuid = require('uuid/v1');
 var _ = require('underscore');
 
 var storage;
-var buckets;
+var datastore;;
 var bucket;
 var isDirty = true;
 
@@ -29,12 +29,12 @@ function create(model, cb){
         });
     }
     function put() {
-        this.$id = ulid();
+        this.$id = uuid();
         this.$created = Date.now();
         var bucket = model.$type || 'unknown';
-        if(!buckets[bucket]) buckets[bucket] = [];
+        if(!datastore) datastore = [];
         delete this.$type;
-        buckets[bucket].push(this);
+        datastore.push(this);
     }
 }
 
@@ -51,7 +51,7 @@ function read(model, cb) {
     function get() {
         if(this && this.$id) {
             var bucket = this.$type || 'unknown';
-            var ret = _.findWhere(buckets[bucket], {$id:this.$id});
+            var ret = _.findWhere(datastore, {$id:this.$id});
             return cb(null, ret);
         } else {
             return cb(new Error('required $id is missing'));
@@ -86,7 +86,7 @@ function update(model, cb){
     function put() {
         if(this && this.$id) {
             var bucket = this.$type || 'unknown';
-            var existingModel = _.findWhere(buckets[bucket], { $id: this.$id });
+            var existingModel = _.findWhere(datastore, { $id: this.$id });
             var updatedModel = _.defaults(model, { $updated: Date.now() });
             updatedModel = _.extend(existingModel, updatedModel);
             delete updatedModel.$type;
@@ -125,15 +125,9 @@ function remove(model, cb) {
         var self = this;
         if(this && this.$id) {
             var bucket = this.$type || 'unknown';
-            buckets = _.mapObject(buckets, function(existingRecords, bucketName){
-                if(bucketName === bucket) {
-                    return _.reject(existingRecords, function(it){
-                        return it.$id === self.$id;
-                    });
-                } else {
-                    return existingRecords
-                }
-            })
+            datastore = _.reject(datastore, function(it){
+                return it.$id === self.$id;
+            });
         } else {
             throw new Error('required $id is missing');
         }
@@ -154,7 +148,7 @@ function find(model, cb) {
         if(this) {
             var bucket = this.$type || 'unknown';
             delete model.$type;
-            var ret = _.where(buckets[bucket], model);
+            var ret = _.where(datastore, model);
             return cb(null, ret);
         }
     }
@@ -174,7 +168,7 @@ function findOne(model, cb) {
         if(this) {
             var bucket = this.$type || 'unknown';
             delete model.$type;
-            var ret = _.findWhere(buckets[bucket], model);
+            var ret = _.findWhere(datastore, model);
             return cb(null, ret);
         }
     }
@@ -194,7 +188,7 @@ function count(model, cb) {
         if(this) {
             var bucket = this.$type || 'unknown';
             delete model.$type;
-            var ret = _.size(_.where(buckets[bucket], model));
+            var ret = _.size(_.where(datastore, model));
             return cb(null, ret);
         }
     }
@@ -227,7 +221,7 @@ function clear(model, cb) {
     function _clear() {
         if(this) {
             var bucket = this.$type || 'unknown';
-            buckets[bucket] = [];
+            datastore = [];
         }
     }
 }
@@ -250,8 +244,8 @@ function fetch(cb){
         var s3key = path.splice(-1, 1)[0];
         var s3bucket = path.join('/');
         s3.get(s3bucket, s3key, function(err, data){
-            if(err) data = {};
-            buckets = data;
+            if(err) data = [];
+            datastore = data;
             isDirty = false;
             return cb(null, data);
         });
@@ -266,8 +260,8 @@ function store(cb){
         var path = storage.split('/');
         var s3key = path.splice(-1, 1)[0];
         var s3bucket = path.join('/');
-        if(!buckets[bucket]) buckets[bucket] = [];
-        s3.put(s3bucket, s3key, buckets[bucket], function(err, data){
+        if(!datastore) datastore = [];
+        s3.put(s3bucket, s3key, datastore, function(err, data){
             if(err) return cb(err);
             else {
                 isDirty = false;
