@@ -72,7 +72,7 @@ describe("DAO-S3 direct tests", function() {
 
 describe("DAO-S3 API v0 compliance tests", function() {
     before(function(){
-        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME, cache: true});
     });
     after(function(done){
         require('../lib/aws/s3').del(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], function(err){
@@ -153,7 +153,7 @@ describe("DAO-S3 API v0 compliance tests", function() {
 
 describe("DAO-S3 API v1 compliance tests", function() {
     before(function(done){
-        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME, cache: true});
         // todo: create record without using the adapter
         dao
         .use(s3DaoAdapter)

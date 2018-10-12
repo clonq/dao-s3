@@ -6,15 +6,17 @@ var storage;
 var datastore;;
 var bucket;
 var isDirty = true;
+var cache = false;
 
 function config(opts) {
     opts = opts || {};
     storage = opts.storage;
+    cache = opts.cache;
 }
 
 function create(model, cb){
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             put.call(model);
@@ -40,7 +42,7 @@ function create(model, cb){
 
 function read(model, cb) {
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             get.call(model, cb);
@@ -61,7 +63,7 @@ function read(model, cb) {
 
 function update(model, cb){
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             try {
@@ -99,7 +101,7 @@ function update(model, cb){
 
 function remove(model, cb) {
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             try {
@@ -136,7 +138,7 @@ function remove(model, cb) {
 
 function find(model, cb) {
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             _find.call(model, cb);
@@ -156,7 +158,7 @@ function find(model, cb) {
 
 function findOne(model, cb) {
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             _find.call(model, cb);
@@ -176,7 +178,7 @@ function findOne(model, cb) {
 
 function count(model, cb) {
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             _count.call(model, cb);
@@ -196,7 +198,7 @@ function count(model, cb) {
 
 function clear(model, cb) {
     bucket = model.$type || 'unknown';
-    if(isDirty) {
+    if(!cache || isDirty) {
         fetch(function(err, data){
             if(err) return cb(err);
             try {
