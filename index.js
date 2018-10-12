@@ -1,231 +1,169 @@
+'use strict';
+var _ = require('underscore');
+var async = require('async');
 var s3 = require('./lib/aws/s3');
 var uuid = require('uuid/v1');
-var _ = require('underscore');
 
 var storage;
-var datastore;;
-var bucket;
-var isDirty = true;
-var cache = false;
 
 function config(opts) {
     opts = opts || {};
     storage = opts.storage;
-    cache = opts.cache;
 }
 
 function create(model, cb){
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            put.call(model);
-            store(function(err){
-                cb(err, model);
-            });
-        });
-    } else {
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        data[key] = data[key] || [];
+        function put() {
+            this.$id = uuid();
+            this.$created = Date.now();
+            delete this.$type;
+            data[key].push(this);
+        }
         put.call(model);
-        store(function(err){
-            cb(err, model);
+        store(data, function(err){
+            return cb(err, model);
         });
-    }
-    function put() {
-        this.$id = uuid();
-        this.$created = Date.now();
-        var bucket = model.$type || 'unknown';
-        if(!datastore) datastore = [];
-        delete this.$type;
-        datastore.push(this);
-    }
+    });
 }
 
 function read(model, cb) {
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            get.call(model, cb);
-        });
-    } else {
-        get.call(model, cb);
-    }
-    function get() {
-        if(this && this.$id) {
-            var bucket = this.$type || 'unknown';
-            var ret = _.findWhere(datastore, {$id:this.$id});
-            return cb(null, ret);
-        } else {
-            return cb(new Error('required $id is missing'));
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        data[key] = data[key] || [];
+        function get() {
+            if(this && this.$id) {
+                var ret = _.findWhere(data[key], {$id:this.$id});
+                return cb(null, ret);
+            } else {
+                return cb(new Error('required $id is missing'));
+            }
         }
-    }
+        return get.call(model, cb);
+    });
 }
 
 function update(model, cb){
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            try {
-                var updatedModel = put.call(model);
-                store(function(err){
-                    cb(err, updatedModel);
-                });
-            } catch(err) {
-                cb(err);
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        let modelBucket = data[key] = data[key] || [];
+        function put() {
+            if(this && this.$id) {
+                var existingModel = _.findWhere(modelBucket, { $id: this.$id });
+                var updatedModel = _.defaults(model, { $updated: Date.now() });
+                updatedModel = _.extend(existingModel, updatedModel);
+                delete updatedModel.$type;
+                return updatedModel;
+            } else {
+                throw new Error('required $id is missing');
             }
-        });
-    } else {
+        }
         try {
             var updatedModel = put.call(model);
-            store(function(err){
+            store(data, function(err){
                 cb(err, updatedModel);
             });
         } catch(err) {
             cb(err);
         }
-    }
-    function put() {
-        if(this && this.$id) {
-            var bucket = this.$type || 'unknown';
-            var existingModel = _.findWhere(datastore, { $id: this.$id });
-            var updatedModel = _.defaults(model, { $updated: Date.now() });
-            updatedModel = _.extend(existingModel, updatedModel);
-            delete updatedModel.$type;
-            return updatedModel;
-        } else {
-            throw new Error('required $id is missing');
-        }
-    }
+    });
 }
 
 function remove(model, cb) {
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            try {
-                del.call(model);
-                store(function(err){
-                    cb(err);
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        data[key] = data[key] || [];
+        function del() {
+            var self = this;
+            if(this && this.$id) {
+                data[key] = _.reject(data[key], function(it){
+                    return it.$id === self.$id;
                 });
-            } catch(err) {
-                cb(err);
+            } else {
+                throw new Error('required $id is missing');
             }
-        });
-    } else {
+        }
         try {
             del.call(model);
-            store(function(err){
+            store(data, function(err){
                 cb(err);
             });
         } catch(err) {
             cb(err);
         }
-    }
-    function del() {
-        var self = this;
-        if(this && this.$id) {
-            var bucket = this.$type || 'unknown';
-            datastore = _.reject(datastore, function(it){
-                return it.$id === self.$id;
-            });
-        } else {
-            throw new Error('required $id is missing');
-        }
-    }
+    });
 }
 
 function find(model, cb) {
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            _find.call(model, cb);
-        });
-    } else {
-        _find.call(model, cb);
-    }
-    function _find() {
-        if(this) {
-            var bucket = this.$type || 'unknown';
-            delete model.$type;
-            var ret = _.where(datastore, model);
-            return cb(null, ret);
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        data[key] = data[key] || [];
+        function _find() {
+            if(this) {
+                delete model.$type;
+                var ret = _.where(data[key], model);
+                return cb(null, ret);
+            }
         }
-    }
+        _find.call(model, cb);
+    });
 }
 
 function findOne(model, cb) {
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            _find.call(model, cb);
-        });
-    } else {
-        _find.call(model, cb);
-    }
-    function _find() {
-        if(this) {
-            var bucket = this.$type || 'unknown';
-            delete model.$type;
-            var ret = _.findWhere(datastore, model);
-            return cb(null, ret);
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        data[key] = data[key] || [];
+        function _find() {
+            if(this) {
+                delete model.$type;
+                var ret = _.findWhere(data[key], model);
+                return cb(null, ret);
+            }
         }
-    }
+        _find.call(model, cb);
+    });
 }
 
 function count(model, cb) {
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            _count.call(model, cb);
-        });
-    } else {
-        _count.call(model, cb);
-    }
-    function _count() {
-        if(this) {
-            var bucket = this.$type || 'unknown';
-            delete model.$type;
-            var ret = _.size(_.where(datastore, model));
-            return cb(null, ret);
+    fetch(function(err, data){
+        if(err) return cb(err);
+        let key = `$${model.$type}`;
+        data[key] = data[key] || [];
+        function _count() {
+            if(this) {
+                delete model.$type;
+                var ret = _.size(_.where(data[key], model));
+                return cb(null, ret);
+            }
         }
-    }
+        _count.call(model, cb);
+    });
 }
 
 function clear(model, cb) {
-    bucket = model.$type || 'unknown';
-    if(!cache || isDirty) {
-        fetch(function(err, data){
-            if(err) return cb(err);
-            try {
-                _clear.call(model);
-                store(function(err){
-                    cb(err);
-                });
-            } catch(err) {
-                cb(err);
+    fetch(function(err, data){
+        function _clear() {
+            if(this) {
+                data = [];
             }
-        });
-    } else {
+        }
+        if(err) return cb(err);
         try {
             _clear.call(model);
-            store(function(err){
+            store(data, function(err){
                 cb(err);
             });
         } catch(err) {
             cb(err);
         }
-    }
-    function _clear() {
-        if(this) {
-            var bucket = this.$type || 'unknown';
-            datastore = [];
-        }
-    }
+    });
 }
 
 module.exports = {
@@ -246,9 +184,10 @@ function fetch(cb){
         var s3key = path.splice(-1, 1)[0];
         var s3bucket = path.join('/');
         s3.get(s3bucket, s3key, function(err, data){
-            if(err) data = [];
-            datastore = data;
-            isDirty = false;
+            if(err) {
+                console.log('fetch err:', err.message);
+                data = {};
+            }
             return cb(null, data);
         });
     } else {
@@ -256,21 +195,19 @@ function fetch(cb){
     }
 }
 
-function store(cb){
-    isDirty = true;
+function store(data, cb){
     if(storage) {
         var path = storage.split('/');
         var s3key = path.splice(-1, 1)[0];
         var s3bucket = path.join('/');
-        if(!datastore) datastore = [];
-        s3.put(s3bucket, s3key, datastore, function(err, data){
-            if(err) return cb(err);
-            else {
-                isDirty = false;
-                return cb(null, data);
+        s3.put(s3bucket, s3key, data, function(err, data){
+            if(err) {
+                console.log('store err:', err.message);
+                return cb(err);
             }
+            return cb(null, data);
         });
     } else {
-        cb(new Error('storage not configured'));
+        return cb(new Error('storage not configured'));
     }
 }

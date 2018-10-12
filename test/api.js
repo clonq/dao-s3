@@ -1,17 +1,24 @@
 var should = require('chai').should();
 var dao = require('daoi');
 var s3DaoAdapter = require('../index');
+var async = require('async');
 
 var TEST_MODEL = {
     $type: 'user',
     name: 'joe',
     age: 23
 };
+var ALT_TEST_MODEL = {
+    $type: 'location',
+    city: 'toronto',
+    country: 'canada'
+};
 
-var S3_STORAGE_FILENAME = 'dao-s3-test-bucket/users.json';
+var S3_STORAGE_FILENAME = 'dao-s3-test-bucket/test.json';
 var TEST_ID;
+var ALT_TEST_ID;
 
-describe("DAO-S3 direct tests", function() {
+describe.skip("DAO-S3 direct tests", function() {
     before(function(done){
         s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
         // todo: create record without using the adapter
@@ -72,7 +79,7 @@ describe("DAO-S3 direct tests", function() {
 
 describe("DAO-S3 API v0 compliance tests", function() {
     before(function(){
-        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME, cache: true});
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
     });
     after(function(done){
         require('../lib/aws/s3').del(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], function(err){
@@ -139,8 +146,10 @@ describe("DAO-S3 API v0 compliance tests", function() {
         .on('delete', function(model){
             require('../lib/aws/s3').get(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], function(err, datastore){
                 should.exist(datastore);
-                datastore.should.be.an('array');
-                datastore.length.should.equal(0);
+                datastore.should.be.an('object');
+                datastore.should.have.property('$user');
+                datastore.$user.should.be.an('array');
+                datastore.$user.length.should.equal(0);
                 done(err);
             });
         })
@@ -153,7 +162,7 @@ describe("DAO-S3 API v0 compliance tests", function() {
 
 describe("DAO-S3 API v1 compliance tests", function() {
     before(function(done){
-        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME, cache: true});
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
         // todo: create record without using the adapter
         dao
         .use(s3DaoAdapter)
@@ -232,6 +241,127 @@ describe("DAO-S3 API v1 compliance tests", function() {
         })
         .clear({$type: 'user'});
     });
-
 });
 
+describe.skip("DAO-S3 API mixed models tests", function() {
+    before(function(){
+        s3DaoAdapter.config({storage: S3_STORAGE_FILENAME});
+    });
+    after(function(done){
+        require('../lib/aws/s3').del(S3_STORAGE_FILENAME.split('/')[0], S3_STORAGE_FILENAME.split('/')[1], done);
+    });
+    it('should create two different models', function(done){
+        async.series({
+            main: cb => {
+                dao
+                .use(s3DaoAdapter)
+                .on('create', function(model){
+                    should.exist(model);
+                    model.should.have.property('$id');
+                    /[0-9a-z\-]{36}/.test(model.$id).should.be.ok;
+                    model.should.have.property('name');
+                    model.name.should.equal(TEST_MODEL.name);
+                    TEST_ID = model.$id;
+                    return cb(null, model);
+                })
+                .on('error', function(err){
+                    return cb(err);
+                })
+                .create(TEST_MODEL);
+            },
+            alt: cb => {
+                dao
+                .use(s3DaoAdapter)
+                .on('create', function(model){
+                    should.exist(model);
+                    model.should.have.property('$id');
+                    /[0-9a-z\-]{36}/.test(model.$id).should.be.ok;
+                    model.should.have.property('city');
+                    model.city.should.equal(ALT_TEST_MODEL.city);
+                    ALT_TEST_ID = model.$id;
+                    return cb(null, model);
+                })
+                .on('error', function(err){
+                    return cb(err);
+                })
+                .create(ALT_TEST_MODEL);
+            }
+        }, (err, results) => {
+            return done(err);
+        });
+    });
+    it('should read multiple models in parallel', function(done){
+        async.parallel({
+            user1: cb => {
+                TEST_MODEL.$id = TEST_ID;
+                TEST_MODEL.$type = 'user';
+                dao
+                .use(s3DaoAdapter)
+                .on('read', function(model){
+                    should.exist(model);
+                    model.should.have.property('$id');
+                    model.should.have.property('name');
+                    model.name.should.equal(TEST_MODEL.name);
+                    cb(null, model);
+                })
+                .on('error', function(err){
+                    cb(err);
+                })
+                .read(TEST_MODEL);
+            },
+            location1: cb => {
+                ALT_TEST_MODEL.$id = ALT_TEST_ID;
+                ALT_TEST_MODEL.$type = 'location';
+                dao
+                .use(s3DaoAdapter)
+                .on('read', function(model){
+                    should.exist(model);
+                    model.should.have.property('$id');
+                    model.should.have.property('city');
+                    model.city.should.equal(ALT_TEST_MODEL.city);
+                    cb(null, model);
+                })
+                .on('error', function(err){
+                    cb(err);
+                })
+                .read(ALT_TEST_MODEL);
+            },
+            location2: cb => {
+                ALT_TEST_MODEL.$id = ALT_TEST_ID;
+                ALT_TEST_MODEL.$type = 'location';
+                dao
+                .use(s3DaoAdapter)
+                .on('read', function(model){
+                    should.exist(model);
+                    model.should.have.property('$id');
+                    model.should.have.property('city');
+                    model.city.should.equal(ALT_TEST_MODEL.city);
+                    cb(null, model);
+                })
+                .on('error', function(err){
+                    cb(err);
+                })
+                .read(ALT_TEST_MODEL);
+            },
+            user2: cb => {
+                TEST_MODEL.$id = TEST_ID;
+                TEST_MODEL.$type = 'user';
+                dao
+                .use(s3DaoAdapter)
+                .on('read', function(model){
+                    should.exist(model);
+                    model.should.have.property('$id');
+                    model.should.have.property('name');
+                    model.name.should.equal(TEST_MODEL.name);
+                    cb(null, model);
+                })
+                .on('error', function(err){
+                    cb(err);
+                })
+                .read(TEST_MODEL);
+            }
+        }, (err, results) => {
+            return done(err);
+        });
+    });
+});
